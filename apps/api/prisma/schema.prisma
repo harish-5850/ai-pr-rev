@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String               @id @default(uuid())
+  githubId         BigInt               @unique
+  login            String
+  email            String?
+  avatarUrl        String?
+  accessToken      String? // encrypted at application level
+  role             UserRole             @default(DEVELOPER)
+  experienceLevel  ExperienceLevel      @default(MID)
+  reviewsReceived  Int                  @default(0)
+  issuesResolved   Int                  @default(0)
+  organizations    OrganizationMember[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@map("users")
+}
+
+enum ExperienceLevel {
+  JUNIOR
+  MID
+  SENIOR
+}
+
+model Organization {
+  id             String               @id @default(uuid())
+  githubId       BigInt               @unique
+  name           String
+  installationId Int?                 @unique
+  avatarUrl      String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  members        OrganizationMember[]
+  repositories   Repository[]
+  subscription   Subscription?
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid())
+  role           OrgRole      @default(MEMBER)
+  userId         String
+  organizationId String
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("organization_members")
+}
+
+model Repository {
+  id             String        @id @default(uuid())
+  githubId       BigInt        @unique
+  name           String
+  fullName       String        @unique
+  defaultBranch  String        @default("main")
+  language       String?
+  techStack      Json?
+  isOnboarded    Boolean       @default(false)
+  isActive       Boolean       @default(true)
+  organizationId String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  pullRequests   PullRequest[]
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("repositories")
+}
+
+model PullRequest {
+  id            String         @id @default(uuid())
+  githubId      BigInt
+  number        Int
+  title         String
+  body          String?
+  state         String
+  authorLogin   String
+  baseBranch    String
+  headBranch    String
+  repositoryId  String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+  repository    Repository     @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  reviews       Review[]
+
+  @@unique([repositoryId, number])
+  @@map("pull_requests")
+}
+
+model Review {
+  id            String         @id @default(uuid())
+  status        ReviewStatus   @default(PENDING)
+  summary       String?
+  pullRequestId String
+  processingMs  Int?
+  errorMessage  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+  issues        Issue[]
+  pullRequest   PullRequest    @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model Issue {
+  id          String      @id @default(uuid())
+  severity    Severity
+  category    String
+  filePath    String
+  startLine   Int?
+  endLine     Int?
+  title       String
+  description String
+  suggestion  String?
+  source      IssueSource
+  reviewId    String
+  createdAt   DateTime    @default(now())
+  review      Review      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("issues")
+}
+
+model Conversation {
+  id              String             @id @default(uuid())
+  githubCommentId BigInt                @unique
+  parentCommentId Int?
+  intent          ConversationIntent
+  userMessage     String
+  botResponse     String?
+  status          ConversationStatus @default(PENDING)
+  userLogin       String
+  pullRequestId   String
+  reviewId        String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  pullRequest     PullRequest        @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+  review          Review?            @relation(fields: [reviewId], references: [id])
+
+  @@map("conversations")
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  plan                 SubscriptionPlan   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  prReviewsUsed        Int                @default(0)
+  prReviewsLimit       Int                @default(50)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  organizationId       String             @unique
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+enum UserRole {
+  ADMIN
+  DEVELOPER
+}
+
+enum OrgRole {
+  OWNER
+  MEMBER
+}
+
+enum ReviewStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum Severity {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum IssueSource {
+  AI
+  ESLINT
+  SEMGREP
+}
+
+enum ConversationIntent {
+  EXPLAIN
+  FIX_SUGGESTION
+  RE_REVIEW
+  GENERAL_QUESTION
+  DISMISS
+}
+
+enum ConversationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+}

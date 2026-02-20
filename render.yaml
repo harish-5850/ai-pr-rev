@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ai-pr-reviewer-api
+    env: node
+    rootDir: apps/api
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-pr-db
+          property: connectionString
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        value: 6379
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://ai-pr-rev.vercel.app # Update after Vercel deploy
+
+databases:
+  - name: ai-pr-db
+    plan: free

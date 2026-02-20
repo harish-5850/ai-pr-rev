@@ -1,0 +1,24 @@
+{
+  "name": "ai-pr-reviewer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-Powered Intelligent Pull Request Review System",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build:api": "npm run build --workspace=apps/api",
+    "build:web": "npm run build --workspace=apps/web",
+    "test:api": "npm test --workspace=apps/api",
+    "test:web": "npm test --workspace=apps/web",
+    "lint": "npm run lint --workspaces",
+    "db:migrate": "npm run db:migrate --workspace=apps/api",
+    "db:generate": "npm run db:generate --workspace=apps/api"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

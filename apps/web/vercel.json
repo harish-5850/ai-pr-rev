@@ -1,0 +1,13 @@
+{
+    "name": "ai-pr-reviewer-web",
+    "framework": "nextjs",
+    "buildCommand": "npm run build",
+    "outputDirectory": ".next",
+    "installCommand": "npm install",
+    "rewrites": [
+        {
+            "source": "/api/:path*",
+            "destination": "https://ai-pr-reviewer-api.onrender.com/api/:path*"
+        }
+    ]
+}
