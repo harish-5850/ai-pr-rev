@@ -13,11 +13,16 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
         private readonly configService: ConfigService,
         private readonly authService: AuthService,
     ) {
-        const clientID = configService.get<string>('github.clientId') || '';
-        const clientSecret = configService.get<string>('github.clientSecret') || '';
-        const callbackURL = 'http://localhost:3100/api/auth/github/callback';
+        super({
+            clientID: configService.get<string>('github.clientId') || 'MISSING',
+            clientSecret: configService.get<string>('github.clientSecret') || 'MISSING',
+            callbackURL: `${process.env.RENDER_EXTERNAL_URL || 'http://localhost:3100'}/api/auth/github/callback`,
+            scope: ['user:email', 'read:org']
+        });
 
-        super({ clientID, clientSecret, callbackURL, scope: ['user:email', 'read:org'] });
+        if (!configService.get<string>('github.clientId') || !configService.get<string>('github.clientSecret')) {
+            this.logger.error('CRITICAL: GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET is missing!');
+        }
     }
 
     async validate(
